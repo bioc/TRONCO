@@ -18,7 +18,7 @@ stat.prederr(data, regularization = "bic", nodes = as.events(data,
 }
 \description{
 Perform a k-fold cross-validation (with k = 10) using the function bn.cv
-and scan every node to estimate its prediction error.
+and Scan every nodes to estimate their prediction error.
 }
 \examples{
 data(test_model)
