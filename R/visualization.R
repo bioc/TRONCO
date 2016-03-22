@@ -44,11 +44,13 @@
 #' @param show.patterns If TRUE shows also a separate oncoprint for each pattern. Default is FALSE
 #' @param annotate.consolidate.events Default is FALSE. If TRUE an annotation for events to consolidate is shown.
 #' @param txt.stats By default, shows a summary statistics for shown data (n,m, |G| and |P|)
+#' @param gtable If TRUE return the gtable object
 #' @param ... other arguments to pass to pheatmap
 #' @export oncoprint
 #' @importFrom gridExtra grid.arrange
 #' @importFrom RColorBrewer brewer.pal brewer.pal.info
 #' @importFrom gtable gtable gtable_add_grob gtable_height gtable_width
+#' @importFrom grDevices colorRampPalette
 #' 
 oncoprint <- function(x, 
                       excl.sort = TRUE, 
@@ -88,6 +90,7 @@ oncoprint <- function(x,
                                 npatterns(x),
                                 ' patterns',
                                 sep = ''),
+                      gtable = FALSE,
                       ...) {
 
     font.size = text.cex * 7
@@ -182,7 +185,7 @@ oncoprint <- function(x,
 
         for (i in u.stages) {
             print(ord.stages[which(ord.stages == i), , drop=FALSE])
-            new.data = cbind(new.data, aux.fun(rownames(ord.stages[which(ord.stages == i), , drop= F])))
+            new.data = cbind(new.data, aux.fun(rownames(ord.stages[which(ord.stages == i), , drop= FALSE])))
         }
         data = new.data
         data = data[order(rowSums(data), decreasing = TRUE), , drop = FALSE ]
@@ -325,22 +328,30 @@ oncoprint <- function(x,
     
     if (annotate.consolidate.events) {
         cat('Annotating events to consolidate - see consolidate.data\n')
-        invalid = consolidate.data(x, FALSE)
+        invalid = consolidate.data(x, print = FALSE)
 
         genes.annotation$consolidate = 'none'
 
-        genes.annotation[
-                         unlist(
-                             lapply(
-                                 invalid$indistinguishable, 
-                                 function(z) {
-                                     return(rownames(unlist(z)))
-                                 }
-                             )),
-                         'consolidate'] = 'indistinguishable'
+        if (length(invalid$indistinguishable) > 0) {
 
-        genes.annotation[ unlist(invalid$zeroes), 'consolidate'] = 'missing'
-        genes.annotation[ unlist(invalid$ones), 'consolidate'] = 'persistent'
+            genes.annotation[
+                             unlist(
+                                 lapply(
+                                     invalid$indistinguishable, 
+                                     function(z) {
+                                         return(rownames(unlist(z)))
+                                     }
+                                 )),
+                             'consolidate'] = 'indistinguishable'
+        }
+
+        if (length(invalid$zeroes) > 0) {
+            genes.annotation[ unlist(invalid$zeroes), 'consolidate'] = 'missing'
+        }
+
+        if (length(invalid$ones) > 0) {
+            genes.annotation[ unlist(invalid$ones), 'consolidate'] = 'persistent'
+        }
 
         consolidate.colors = c('white', 'brown1', 'darkorange4', 'firebrick4', 'deepskyblue3')
         names(consolidate.colors) = c('none', 'indistinguishable', 'missing', 'persistent')
@@ -442,24 +453,6 @@ oncoprint <- function(x,
         cat('Passing the following parameters to TRONCO pheatmap:\n')
         print(list(...))
     }
-
-                                        #   if (!is.na(txt.stats))
-                                        #   {
-                                        #     if (npatterns(x) > 0)
-                                        #     {
-                                        #       patterns = as.patterns(x)
-                                        #       
-                                        #       for(i in 1:length(patterns))
-                                        #       {
-                                        #         genes.patt = as.events.in.patterns(x, patterns[i]) 
-                                        #         txt.stats = paste(txt.stats, '\n\n',
-                                        #                           patterns[i], '\n',
-                                        #                           paste(apply(genes.patt, 1, paste, collapse=' '), collapse='\n')                          
-                                        #                           )
-                                        #         
-                                        #       }
-                                        #     }
-                                        #   }
 
     ## Real pheatmap.
     
@@ -571,8 +564,9 @@ oncoprint <- function(x,
     ## ret$gtable = gtable_add_grob(ret$gtable, patt.table, 1 , 1)
     ## grid.newpage()
     ## grid.draw(ret$gtable)
-
-    return(ret)
+    if (gtable) {
+        return(ret)
+    }
 }
 
 
@@ -594,7 +588,7 @@ pathway.visualization <- function(x,
                                   title =
                                       paste('Pathways:',
                                             paste(names(pathways), collapse=', ', sep='')),
-                                  file,
+                                  file = NA,
                                   pathways.color = 'Set2',
                                   aggregate.pathways,
                                   pathways,
@@ -605,8 +599,7 @@ pathway.visualization <- function(x,
         && pathways.color %in% rownames(brewer.pal.info)) {
         cat('Annotating pathways with RColorBrewer color palette', pathways.color, '.\n')
         pathway.colors = brewer.pal(n=length(names), name=pathways.color)
-    } else {
-        print(pathways.color)   
+    } else { 
         if (length(pathways.color) != length(names)) 
             stop('You did not provide enough colors to annotate ',
                  length(names),
@@ -635,7 +628,7 @@ pathway.visualization <- function(x,
                    pathway.name = names[1],
                    aggregate.pathway = aggregate.pathways)
 
-    data.pathways = change.color(data.pathways, 'Pathway', pathways.color[1])
+    data.pathways = change.color(data.pathways, 'Pathway', pathway.colors[1])
     data.pathways = rename.type(data.pathways, 'Pathway', names[1])
 
     if (length(names) > 1) {  
@@ -645,246 +638,15 @@ pathway.visualization <- function(x,
 
             pathway = change.color(pathway, 'Pathway', pathway.colors[i])
             pathway = rename.type(pathway, 'Pathway', names[i])
-
-            ## view(pathway)
-            ## print(has.stages(pathway))
-            ## print('bindo..')
-            ## print(has.stages(data.pathways))
-
             data.pathways = ebind(data.pathways, pathway)
-            ## view(data.pathways)
         }
     }
 
-    ## data.pathways = enforce.numeric(data.pathways)
-    ## view(data.pathways)
     ret = oncoprint(trim(data.pathways), title=title, file=file, ...)
 
     return(ret)
 }
 
-
-# #### Consensus matrix (intra-clusters)
-# oncoprint.consensus = function(models, MIN.HITS = 0)
-# {
-
-
-# smaller.to.bigger = function(m,cn)
-# {
-# x = matrix(0, nrow = length(cn), ncol = length(cn))
-# rownames(x) = cn
-# colnames(x) = cn
-
-
-# for(i in 1:nrow(m))
-# for(j in 1:nrow(m))
-# x[rownames(m)[i], rownames(m)[j]] = ifelse(m[i,j] == 1, 1, 0) 
-# return(x)
-# }
-
-
-# # All the adjacency matrices
-# matrices = list()
-# for(i in 1:length(models))
-# matrices = append(matrices, list(models[[i]]$adj.matrix$adj.matrix.bic))
-
-# # All their colnames - all possible events and types
-# cn = unique(Reduce(union, lapply(matrices, colnames)))
-
-# all.events = NULL
-# for(i in 1:length(models)) all.events = rbind(all.events, as.events(models[[i]]$data))
-# all.events = unique(all.events)
-
-# all.types = NULL
-# for(i in 1:length(models)) all.types = rbind(all.types, models[[i]]$data$types)
-# all.types = unique(all.types)
-
-# # Consensus + overall adjacency matrix
-# consensus = Reduce('+', lapply(matrices, smaller.to.bigger, cn=cn))
-# adjacency = consensus
-# adjacency[adjacency < MIN.HITS] = 0 
-# adjacency[adjacency > 1] = 1 
-
-# cat('Consensus adjacency matrix:', nrow(adjacency), 'x', ncol(adjacency), ', minimum consensus', MIN.HITS, '\n')
-
-
-
-# keys = Reduce(rbind, lapply(models, as.events))
-
-# types = data.frame(event=rep('pattern', nrow(super.model)), 
-# stringsAsFactors = F)
-
-# labels = data.frame(name=rep('none', nrow(super.model)), 
-# stringsAsFactors = F)
-
-# pattern.type =  data.frame(pattern=rep('NA', nrow(super.model)), 
-# stringsAsFactors = F)
-
-
-# for(i in 1:length(rownames(super.model)))
-# {
-# types$event[i] = keys[rownames(super.model)[i], 'type']   
-
-# labels$name[i] = keys[rownames(super.model)[i], 'event']        
-
-# prefix = gsub("_.*$", "", labels$name[i])
-# prefix = gsub( "\"","", prefix)
-
-# if (prefix %in% c('AND', 'OR', 'XOR'))
-# {     
-# pattern.type$pattern[i] = prefix
-# if (prefix == 'AND') pattern.type$pattern[i] = 'co-occurrence'
-# if (prefix == 'OR') pattern.type$pattern[i] = 'soft exclusivity'
-# if (prefix == 'XOR') pattern.type$pattern[i] = 'hard exclusivity'
-
-# compact.label = strsplit(labels$name[i], '_' )[[1]]
-# labels$name[i] = paste(
-# compact.label[2:length(compact.label)],
-# collapse = ' / ')
-# }
-# rownames(super.model)[i] = 
-# paste(
-# keys[rownames(super.model)[i], 'event'], 
-# keys[rownames(super.model)[i], 'type'])  
-# }
-
-# colnames(super.model) = rownames(super.model)
-# rownames(types) = rownames(super.model)
-# rownames(labels) = rownames(super.model)
-# rownames(pattern.type) = rownames(super.model)
-
-# types[types == 'Hypothesis'] = 'Pattern'
-
-# ########### Filetering for recurrrent
-# view = super.model
-# view = view[apply(view, 1, max) > MIN,]
-# view = view[, apply(view, 2, max) > MIN]
-
-# ########### Ordering according to the number of times a relation is found
-# group.order = function(x, k, margin)
-# {   
-# ord = which(apply(x, margin, max) == k)
-
-# if (margin == 1)
-# {
-# to.sort = x[ord, , drop = F]
-# to.sort = to.sort[order(rowSums(to.sort), decreasing = T), , drop = F]
-# rownames(x)[ord] = rownames(to.sort)    
-# x[ord, ] = to.sort
-# }
-# else
-# {
-# to.sort = x[, ord , drop = F]
-# to.sort = to.sort[, order(colSums(to.sort), decreasing = T), drop = F]
-# colnames(x)[ord] = colnames(to.sort)
-# x[, ord] = to.sort  
-# }
-
-# return(x)
-# } 
-
-# selects.recurr = order(apply(view, 1, max), decreasing = T)
-# view = view[selects.recurr, ] 
-
-# max.values = apply(view, 1, max)
-# for(i in 1:length(unique(max.values)))
-# view = group.order(view, unique(max.values)[i], 1)
-
-# selected.recurr = order(apply(view, 2, max), decreasing = T)
-# view = view[, selected.recurr]  
-
-# max.values = apply(view, 2, max)
-# for(i in 1:length(unique(max.values)))
-# view = group.order(view, unique(max.values)[i], 2)
-
-# gaps.row = match(
-# unique(apply(view, 1, max)),
-# apply(view, 1, max)) - 1
-
-# gaps.col = match(
-# unique(apply(view, 2, max)),
-# apply(view, 2, max)) - 1
-
-
-# ############
-# view.ones = view
-# view.ones[view.ones > 1] = 1
-# ann.row = data.frame(selects=rowSums(view.ones), 
-# row.names = rownames(view),
-# stringsAsFactors = F)
-
-# # ann.row$selects = .bincode(ann.row$selects,
-# # c(0, 
-# # max(ann.row$selects) / 4,
-# # max(ann.row$selects) / 2,
-# # max(ann.row$selects) * 3 / 4,
-# # max(ann.row$selects)), 
-# # TRUE)   
-
-
-# ann.row = cbind(
-# types[rownames(ann.row), , drop = FALSE], 
-# pattern.type[rownames(ann.row), , drop = FALSE],
-# ann.row)
-
-# ann.col = data.frame(selected=colSums(view.ones), 
-# row.names = colnames(view),
-# stringsAsFactors = F)
-
-# ann.col = cbind(
-# types[rownames(ann.col), , drop = FALSE], 
-# pattern.type[rownames(ann.col), , drop = FALSE],
-# ann.col)
-
-# selection = max(max(ann.row$selects), max(ann.col$selected))
-# selection.palette = brewer.pal(9, 'PuBuGn')[4:9]
-# # selection.palette = colorRampPalette(selection)(selection)
-
-# ann.colors = list(
-# event = as.colors(Cluster3.methylation_subtype.aic$data),
-# pattern = c('red', 'darkgreen', 'orange', 'white'),
-# # selects = colorRampPalette(brewer.pal(9, 'PuBuGn'))(max(ann.row$selects) + 1),
-# # selected = colorRampPalette(brewer.pal(9, 'PuBuGn'))(max(ann.col$selected) + 1)
-# # selects = selection.palette,
-# # selected = selection.palette
-# selects = colorRampPalette(selection.palette)(max(ann.row$selects) + 1),
-# selected = colorRampPalette(selection.palette)(max(ann.col$selected) + 1)
-# ) 
-# ann.colors$event['Hypothesis'] = 'white'
-# names(ann.colors$event)[4] = 'Pattern'
-# names(ann.colors$pattern) = c('hard exclusivity', 'co-occurrence', 'soft exclusivity', 'NA')
-
-# print(ann.colors$selects)
-
-# map.color = colorRampPalette(brewer.pal(3, 'YlOrBr'))(max(super.model) + 1)
-# # map.color = brewer.pal(max(super.model) + 1, 'YlOrBr')
-# map.color[1] = 'gray92'
-
-# map.nozeroes = view
-# map.nozeroes[view == 0] = ''
-
-# pheatmap(view, 
-# main = 'Selectivity relations (intra-clusters consensus)',
-# scale = 'none', 
-# color = map.color,
-# font.size=4,
-# fontsize_col = 6,
-# fontsize_row = 6,
-# annotation_row = ann.row,
-# annotation_col = ann.col,
-# annotation_colors = ann.colors,
-# fontsize_number = 6,
-# cluster_rows = F,
-# cluster_cols = F,
-# labels_row = labels[rownames(view), ],
-# labels_col = labels[colnames(view), ],
-# number_format = '%d',
-# display_numbers = map.nozeroes,
-# gaps_col = gaps.col,
-# gaps_row = gaps.row,
-# border_color = 'lightgray'
-# )
-# } 
 
 #' export input for cbio visualization at http://www.cbioportal.org/public-portal/oncoprinter.jsp
 #' @title oncoprint.cbio
@@ -953,6 +715,8 @@ oncoprint.cbio <- function(x,
 #' @return LaTEX code
 #' @importFrom gridExtra grid.table
 #' @importFrom xtable xtable
+#' @importFrom utils flush.console txtProgressBar setTxtProgressBar
+#' @importFrom grDevices pdf dev.cur dev.off dev.set
 #' @export genes.table.report
 #' 
 genes.table.report <- function(x,
@@ -2024,7 +1788,7 @@ heatmap_motor <- function(matrix,
 
 generate_breaks <- function(x, n, center = FALSE) {
     if (center) {
-        m = max(abs(c(min(x, na.rm = TRUE), max(x, na.rm = T))))
+        m = max(abs(c(min(x, na.rm = TRUE), max(x, na.rm = TRUE))))
         res = seq(-m, m, length.out = n + 1)
     }
     else{
@@ -2306,74 +2070,16 @@ find_gaps <- function(tree, cutree_n) {
 #' 
 #' # Draw heatmaps
 #' pheatmap(test)
-#' pheatmap(test, kmeans_k = 2)
-#' pheatmap(test, scale = "row", clustering_distance_rows = "correlation")
-#' pheatmap(test, color = colorRampPalette(c("navy", "white", "firebrick3"))(50))
-#' pheatmap(test, cluster_row = FALSE)
-#' pheatmap(test, legend = FALSE)
-#' 
-#' # Show text within cells
-#' pheatmap(test, display_numbers = TRUE)
-#' pheatmap(test, display_numbers = TRUE, number_format = "\%.1e")
-#' pheatmap(test, display_numbers = matrix(ifelse(test > 5, "*", ""), nrow(test)))
-#' pheatmap(test, cluster_row = FALSE, legend_breaks = -1:4, legend_labels = c("0",
-#' "1e-4", "1e-3", "1e-2", "1e-1", "1"))
-#' 
-#' # Fix cell sizes and save to file with correct size
-#' pheatmap(test, cellwidth = 15, cellheight = 12, main = "Example heatmap")
-#' pheatmap(test, cellwidth = 15, cellheight = 12, fontsize = 8, filename = "test.pdf")
-#' 
-#' # Generate annotations for rows and columns
-#' annotation_col = data.frame(
-#'                     CellType = factor(rep(c("CT1", "CT2"), 5)), 
-#'                     Time = 1:5
-#'                 )
-#' rownames(annotation_col) = paste("Test", 1:10, sep = "")
-#' 
-#' annotation_row = data.frame(
-#'                     GeneClass = factor(rep(c("Path1", "Path2", "Path3"), c(10, 4, 6)))
-#'                 )
-#' rownames(annotation_row) = paste("Gene", 1:20, sep = "")
-#' 
-#' # Display row and color annotations
-#' pheatmap(test, annotation_col = annotation_col)
-#' pheatmap(test, annotation_col = annotation_col, annotation_legend = FALSE)
-#' pheatmap(test, annotation_col = annotation_col, annotation_row = annotation_row)
-#' 
-#' 
-#' # Specify colors
-#' ann_colors = list(
-#'     Time = c("white", "firebrick"),
-#'     CellType = c(CT1 = "#1B9E77", CT2 = "#D95F02"),
-#'     GeneClass = c(Path1 = "#7570B3", Path2 = "#E7298A", Path3 = "#66A61E")
-#' )
-#' 
-#' pheatmap(test, annotation_col = annotation_col, annotation_colors = ann_colors, main = "Title")
-#' pheatmap(test, annotation_col = annotation_col, annotation_row = annotation_row, 
-#'          annotation_colors = ann_colors)
-#' pheatmap(test, annotation_col = annotation_col, annotation_colors = ann_colors[2]) 
-#' 
-#' # Gaps in heatmaps
-#' pheatmap(test, annotation_col = annotation_col, cluster_rows = FALSE, gaps_row = c(10, 14))
-#' pheatmap(test, annotation_col = annotation_col, cluster_rows = FALSE, gaps_row = c(10, 14), 
-#'          cutree_col = 2)
-#' 
-#' # Show custom strings as row/col names
-#' labels_row = c("", "", "", "", "", "", "", "", "", "", "", "", "", "", "", 
-#' "", "", "Il10", "Il15", "Il1b")
-#' 
-#' pheatmap(test, annotation_col = annotation_col, labels_row = labels_row)
-#' 
-#' # Specifying clustering from distance matrix
-#' drows = dist(test, method = "minkowski")
-#' dcols = dist(t(test), method = "minkowski")
-#' pheatmap(test, clustering_distance_rows = drows, clustering_distance_cols = dcols)
+
 #' @export pheatmap
 #' @importFrom grid unit textGrob gpar unit.c viewport convertWidth
 #' @importFrom grid convertHeight gList gTree rectGrob grobTree polylineGrob
 #' @importFrom grid grid.draw grid.pretty grid.newpage
 #' @importFrom scales dscale hue_pal brewer_pal
 #' @importFrom RColorBrewer brewer.pal
+#' @importFrom stats as.dist cor hclust dist cutree sd kmeans sd
+#' @importFrom grDevices colorRampPalette pdf png jpeg tiff bmp dev.off rainbow
+#' @importFrom graphics strwidth
 #' 
 pheatmap <- function(mat,
                      color = colorRampPalette(rev(brewer.pal(n = 7, name = "RdYlBu")))(100),
@@ -2607,22 +2313,6 @@ pheatmap <- function(mat,
                       txt.stats = txt.stats,
                       ...)
 
-    ## gtsub = heatmap_motor(mat, border_color = border_color,
-    ## cellwidth = cellwidth, cellheight = cellheight, treeheight_col
-    ## = treeheight_col, treeheight_row = treeheight_row, tree_col =
-    ## tree_col, tree_row = tree_row, filename = filename, width =
-    ## width, height = height, breaks = breaks, color = color, legend
-    ## = legend, annotation_row = annotation_row, annotation_col =
-    ## annotation_col, annotation_colors = annotation_colors,
-    ## annotation_legend = annotation_legend, main = main, fontsize =
-    ## fontsize, fontsize_row = fontsize_row, fontsize_col =
-    ## fontsize_col, fmat = fmat, fontsize_number = fontsize_number,
-    ## number_color = number_color, gaps_row = gaps_row, gaps_col =
-    ## gaps_col, labels_row = labels_row, labels_col = labels_col,
-    ## legend.cex = legend.cex, txt.stats = txt.stats, ...)
-
-    ## gt = rbind(gt, gtsub, size='max')
-
     if (is.na(filename) & !silent) {
         grid.newpage()
         grid.draw(gt)
@@ -2646,6 +2336,8 @@ pheatmap <- function(mat,
 #' @export tronco.pattern.plot
 #' @importFrom circlize circos.clear circos.par chordDiagram circos.text
 #' @importFrom circlize circos.trackPlotRegion get.cell.meta.data
+#' @importFrom graphics layout par barplot plot.new legend
+#' @importFrom grDevices rgb col2rgb
 #' 
 tronco.pattern.plot <- function(x,
                          group=as.events(x),
@@ -2809,10 +2501,6 @@ tronco.pattern.plot <- function(x,
 
         circos.par(gap.degree = gaps)
 
-        ## matrix = matrix[ order(matrix[, 1]) , , drop = FALSE] 
-        ## matrix = matrix[ order(matrix[, 1], decreasing = T) , , drop = FALSE] 
-        ## print(matrix)
-
         chordDiagram(matrix, 
                      grid.col = sector.color,
                      annotationTrack = "grid", 
@@ -2822,12 +2510,6 @@ tronco.pattern.plot <- function(x,
                      link.lty = link.style,
                      link.lwd = 0.3
                      )
-
-        ## for (si in get.all.sector.index()) 
-        ## { 
-        ## # here the index for the grid track is 2 
-        ## circos.axis(h = "top", labels.cex = 0.3, major.tick.percentage = .4, sector.index = si, track.index = 2) 
-        ## } 
 
         circos.trackPlotRegion(track.index = 1, 
                                panel.fun = function(x, y) {
@@ -2958,4 +2640,3 @@ tronco.pattern.plot <- function(x,
 }
 
 #### end of file -- visualization.R
-

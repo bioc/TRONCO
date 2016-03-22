@@ -222,7 +222,7 @@ as.alterations <- function(x, new.type = 'Alteration', new.color = 'khaki') {
         stop('Patterns found. Delete patterns first.\n')
     }
 
-    merge.types(x, NULL, new.type = new.type, new.color = new.color)
+    join.types(x, NULL, new.type = new.type, new.color = new.color)
 }
 
 #' Return the patterns in the dataset which constitute CAPRI's hypotheses.
@@ -417,10 +417,11 @@ as.events.in.sample <- function(x, sample) {
 #' @title as.confidence
 #' @param x A TRONCO model.
 #' @param conf A vector with any of 'tp', 'pr', 'hg', 'npb', 'pb', 'sb', 'eloss', 'prederr' or 'posterr'. 
+#' @param models The name of the models to extract, all by default. 
 #' @return A list of matrices with the event-to-event confidence. 
 #' @export as.confidence
 #' 
-as.confidence <- function(x, conf) {
+as.confidence <- function(x, conf, models = names(x$model)) {
     is.compliant(x)
     is.model(x)
     if (!is.vector(conf)) stop('"conf" should be a vector.')
@@ -448,8 +449,6 @@ as.confidence <- function(x, conf) {
         || is.null(x$model)
         || is.na(x$model))
         stop('Input \'x\' does not contain a TRONCO model. No confidence to show.\n')
-
-    models = names(x$model)
 
 #     if (is.null(x$bootstrap))
 #       stop('No bootstrap executed in this TRONCO object.')
@@ -1174,7 +1173,7 @@ as.bootstrap.scores <- function(x,
 #' @examples
 #' data(test_model_kfold)
 #' as.kfold.eloss(test_model_kfold)
-#' as.kfold.eloss(test_model_kfold, models='aic')
+#' as.kfold.eloss(test_model_kfold, models='capri_aic')
 #'
 #' @title as.kfold.eloss
 #' @param x A TRONCO model.
@@ -1182,6 +1181,7 @@ as.bootstrap.scores <- function(x,
 #' @param values If you want to see also the values
 #' @return All the bootstrap scores in a TRONCO model 
 #' @export as.kfold.eloss
+#' @importFrom stats sd
 #' 
 as.kfold.eloss <- function(x,
                            models = names(x$model),
@@ -1230,7 +1230,7 @@ as.kfold.eloss <- function(x,
 #' @examples
 #' data(test_model_kfold)
 #' as.kfold.prederr(test_model_kfold)
-#' as.kfold.prederr(test_model_kfold, models='aic')
+#' as.kfold.prederr(test_model_kfold, models='capri_aic')
 #'
 #' @title as.kfold.prederr
 #' @param x A TRONCO model.
@@ -1240,6 +1240,7 @@ as.kfold.eloss <- function(x,
 #' @param table Keep the original table (defaul false)
 #' @return All the bootstrap scores in a TRONCO model 
 #' @export as.kfold.prederr
+#' @importFrom stats sd
 #' 
 as.kfold.prederr <- function(x,
                              events = as.events(x),
@@ -1313,6 +1314,7 @@ as.kfold.prederr <- function(x,
 #' @param table Keep the original table (defaul false)
 #' @return All the posterior classification error scores in a TRONCO model 
 #' @export as.kfold.posterr
+#' @importFrom stats sd
 #' 
 as.kfold.posterr <- function(x,
                              events = as.events(x),
@@ -1553,6 +1555,7 @@ duplicates <- function(x) {
 #' @param x A TRONCO compliant dataset.
 #' @param view The firse \code{view} events are shown via \code{head}.
 #' @export view
+#' @importFrom utils head
 #' 
 view <- function(x, view = 5) {
     is.compliant(x)
@@ -1849,7 +1852,7 @@ sort.by.frequency <- function(x, decreasing = TRUE, ...) {
 #'
 #' @examples
 #' data(test_model)
-#' adj_matrix = as.adj.matrix(test_model, events=as.events(test_model)[5:15,])$bic
+#' adj_matrix = as.adj.matrix(test_model, events=as.events(test_model)[5:15,])$capri_bic
 #' keysToNames(test_model, adj_matrix)
 #'
 #'

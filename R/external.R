@@ -25,6 +25,7 @@
 #' @param label.deletion The event type to use as amplification (can be a list)
 #' @return A MUTEX example matrix
 #' @export export.mutex
+#' @importFrom utils write.table
 #' 
 export.mutex <- function(x, 
                          filename = 'tronco_to_mutex',
@@ -47,11 +48,11 @@ export.mutex <- function(x,
     }
     if (length(label.amplification) >= 2) {
         amplification = 'amplification'
-        data = merge.types(data, label.amplification[[1]], label.amplification[[2]], 'amplification', 'red')
+        data = join.types(data, label.amplification[[1]], label.amplification[[2]], 'amplification', 'red')
     }
     if (length(label.amplification) > 2) {
         for (label in label.amplification[3:length(label.amplification)]) {
-            data = merge.types(data, label, 'amplification', 'amplification', 'red')
+            data = join.types(data, label, 'amplification', 'amplification', 'red')
         }
     }
 
@@ -62,11 +63,11 @@ export.mutex <- function(x,
     }
     if (length(label.deletion) >= 2) {
         deletion = 'deletion'
-        data = merge.types(data, label.deletion[[1]], label.deletion[[2]], 'deletion', 'blue')
+        data = join.types(data, label.deletion[[1]], label.deletion[[2]], 'deletion', 'blue')
     }
     if (length(label.deletion) > 2) {
         for (label in label.deletion[3:length(label.deletion)]) {
-            data = merge.types(data, label, 'deletion', 'deletion', 'blue')
+            data = join.types(data, label, 'deletion', 'deletion', 'blue')
         }
     }
 
@@ -77,11 +78,11 @@ export.mutex <- function(x,
     }
     if (length(label.mutation) >= 2) {
         mutation = 'mutation'
-        data = merge.types(data, label.mutation[[1]], label.mutation[[2]], 'mutation', 'green')
+        data = join.types(data, label.mutation[[1]], label.mutation[[2]], 'mutation', 'green')
     }
     if (length(label.mutation) > 2) {
         for (label in label.mutation[3:length(label.mutation)]) {
-            data = merge.types(data, label, 'mutation', 'mutation', 'green')
+            data = join.types(data, label, 'mutation', 'mutation', 'green')
         }
     }
 
@@ -222,6 +223,7 @@ export.nbs.input <-function(x,
 #' @param fdr cutoff for fdr
 #' @param display print summary table of extracted groups
 #' @export import.mutex.groups
+#' @importFrom utils count.fields
 #' 
 import.mutex.groups <- function(file, fdr=.2, display = TRUE) {
     ## Found somewhere on the web - makes sense.
@@ -410,6 +412,7 @@ TCGA.shorten.barcodes <- function(x) {
 #' @param column.map Map to the required columns
 #' @return a map
 #' @export TCGA.map.clinical.data
+#' @importFrom utils read.delim
 #' 
 TCGA.map.clinical.data <- function(file, sep='\t', column.samples, column.map) {
 
@@ -473,6 +476,8 @@ sample.RColorBrewer.colors <- function(palette, ncolors) {
 #' @export export.graphml
 #' @importFrom igraph write.graph V V<- set.vertex.attribute
 #' @importFrom igraph set.edge.attribute set.graph.attribute
+#' @importFrom grDevices rgb col2rgb
+#' @importFrom utils packageVersion
 #' 
 export.graphml <- function(x, file, ...) {
 
