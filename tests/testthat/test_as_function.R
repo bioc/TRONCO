@@ -1,4 +1,3 @@
-context("AS functions test")
 
 data(maf)
 muts = import.MAF(maf)
@@ -14,6 +13,8 @@ stages$stage = c('A', 'B', 'C')
 names(stages$stage) = as.samples(muts)
 stages = as.data.frame(stages)
 muts_stages = annotate.stages(muts, stages=stages)
+
+context("AS functions test")
 
 test_that("as.genotypes returns a genotypes matrix", {
     data(as.genotypes.test)
@@ -68,8 +69,7 @@ test_that("as.colors returns a list of types", {
 })
 
 test_that("as.gene returns a list of types", {
-    expect_equal(as.gene(muts, genes='A2BP1')[1,1],
-                 1)
+    expect_equal(as.gene(muts, genes='A2BP1')[1,1], 1)
 })
 
 
@@ -132,7 +132,7 @@ test_that("as.pathway return compliant dataset", {
     path = as.pathway(muts,
                       pathway.name = 'test',
                       pathway.genes = 'APC',
-                      aggregate.pathway = TRUE)
+                      aggregate.pathway = FALSE)
     expect_silent(is.compliant(path))
     path = as.pathway(muts_stages,
                       pathway.name = 'test',
@@ -157,5 +157,13 @@ test_that("as.duplicates return false", {
 
 test_that("duplicates return 0", {
     expect_equal(length(duplicates(hypo)), 0)
+})
+
+test_that("npatterns return the right amount of pattern", {
+    expect_equal(length(duplicates(hypo)), 0)
+})
+
+test_that("view return output", {
+    expect_output(view(gistic_model_capri), regexp=NA)
 })
 
