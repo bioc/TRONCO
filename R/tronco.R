@@ -136,7 +136,7 @@ tronco.caprese <- function(data,
 #'
 #' @examples
 #' data(test_dataset)
-#' recon = tronco.capri(test_dataset, nboot = 5)
+#' recon = tronco.capri(test_dataset, nboot = 1)
 #'
 #' @title tronco capri
 #' @param data A TRONCO compliant dataset.
@@ -167,14 +167,14 @@ tronco.capri <- function(data,
                          boot.seed = NULL, 
                          silent = FALSE ) {
 
-    ## Enforce data to be numeric
-    data = enforce.numeric(data)
-
     ## Check for the inputs to be correct.
     
     if (is.null(data) || is.null(data$genotypes)) {
         stop("The dataset given as input is not valid.");
     }
+    
+    ## Enforce data to be numeric
+    data = enforce.numeric(data)
     
     if (is.null(data$hypotheses)) {
         data$hypotheses = NA;
@@ -345,7 +345,7 @@ tronco.capri <- function(data,
 #'
 #' @examples
 #' data(test_dataset_no_hypos)
-#' recon = tronco.mst.edmonds(test_dataset_no_hypos, nboot = 5)
+#' recon = tronco.mst.edmonds(test_dataset_no_hypos, nboot = 1)
 #'
 #' @title tronco mst edmonds
 #' @param data A TRONCO compliant dataset.
@@ -382,14 +382,14 @@ tronco.mst.edmonds <- function(data,
                                boot.seed = NULL, 
                                silent = FALSE ) {
 
-    ## Enforce data to be numeric
-    data = enforce.numeric(data)
-
-    ## Check for the inputs to be correct.
-    
     if (is.null(data) || is.null(data$genotypes)) {
         stop("The dataset given as input is not valid.");
     }
+
+    ## Enforce data to be numeric
+    data = enforce.numeric(data)
+    
+    ## Check for the inputs to be correct.
     
     if (is.null(data$hypotheses)) {
         data$hypotheses = NA;
@@ -566,7 +566,7 @@ tronco.mst.edmonds <- function(data,
 #'
 #' @examples
 #' data(test_dataset_no_hypos)
-#' recon = tronco.mst.chowliu(test_dataset_no_hypos, nboot = 5)
+#' recon = tronco.mst.chowliu(test_dataset_no_hypos, nboot = 1)
 #'
 #' @title tronco mst chow liu
 #' @param data A TRONCO compliant dataset.
@@ -606,15 +606,15 @@ tronco.mst.chowliu <- function(data,
                                boot.seed = NULL, 
                                silent = FALSE ) {
 
-    ## Enforce data to be numeric
-    data = enforce.numeric(data)
-
     ## Check for the inputs to be correct.
     
     if (is.null(data) || is.null(data$genotypes)) {
         stop("The dataset given as input is not valid.");
     }
     
+    ## Enforce data to be numeric
+    data = enforce.numeric(data)
+
     if (is.null(data$hypotheses)) {
         data$hypotheses = NA;
     }
@@ -781,7 +781,7 @@ tronco.mst.chowliu <- function(data,
 #'
 #' @examples
 #' data(test_dataset_no_hypos)
-#' recon = tronco.mst.prim(test_dataset_no_hypos, nboot = 5)
+#' recon = tronco.mst.prim(test_dataset_no_hypos, nboot = 1)
 #'
 #' @title tronco mst prim
 #' @param data A TRONCO compliant dataset.
@@ -819,14 +819,14 @@ tronco.mst.prim <- function(data,
                             boot.seed = NULL, 
                             silent = FALSE ) {
 
-    ## Enforce data to be numeric
-    data = enforce.numeric(data)
-
     ## Check for the inputs to be correct.
     
     if (is.null(data) || is.null(data$genotypes)) {
         stop("The dataset given as input is not valid.");
     }
+
+    ## Enforce data to be numeric
+    data = enforce.numeric(data)
     
     if (is.null(data$hypotheses)) {
         data$hypotheses = NA;
@@ -1002,7 +1002,7 @@ tronco.mst.prim <- function(data,
 #'
 #' @examples
 #' data(test_model)
-#' boot = tronco.bootstrap(test_model, nboot = 5)
+#' boot = tronco.bootstrap(test_model, nboot = 1)
 #'
 #' @title tronco bootstrap
 #' @param reconstruction The output of tronco.capri or 
@@ -1011,9 +1011,9 @@ tronco.mst.prim <- function(data,
 #' to be performed, e.g., non-parametric for uniform sampling.
 #' @param nboot Number of bootstrap sampling to be performed 
 #' when estimating the model confidence.
-#' @param verbose Should I be verbose?
 #' @param cores.ratio Percentage of cores to use
 #' coresRate * (numCores - 1)
+#' @param silent A parameter to disable/enable verbose messages.
 #' @return A TRONCO compliant object with reconstructed model
 #' @importFrom doParallel registerDoParallel  
 #' @importFrom foreach foreach %dopar%
@@ -1024,8 +1024,8 @@ tronco.mst.prim <- function(data,
 tronco.bootstrap <- function(reconstruction,
                              type = "non-parametric",
                              nboot = 100,
-                             verbose = FALSE,
-                             cores.ratio = 1) {
+                             cores.ratio = 1,
+                             silent = FALSE) {
     
     ## Check for the inputs to be given.
     
@@ -1061,7 +1061,9 @@ tronco.bootstrap <- function(reconstruction,
     
     ## Perform the selected bootstrap procedure.
     
-    cat("*** Executing now the bootstrap procedure, this may take a long time...\n")
+    if (!silent) {
+        cat("*** Executing now the bootstrap procedure, this may take a long time...\n")
+    }
 
     parameters = as.parameters(reconstruction)
 
@@ -1071,29 +1073,33 @@ tronco.bootstrap <- function(reconstruction,
         curr.boot = bootstrap(reconstruction, 
                               type,
                               nboot,
-                              cores.ratio)
-        cat("Performed", type,
-            "bootstrap with", nboot,
-            "resampling and", lambda, 
-            "as shrinkage parameter.\n")
+                              cores.ratio,
+                              silent = silent)
+        if (!silent) {
+            cat("Performed", type,
+                "bootstrap with", nboot,
+                "resampling and", lambda, 
+                "as shrinkage parameter.\n")
+        }
 
     } else {
 
         curr.boot = bootstrap(reconstruction, 
                               type,
                               nboot,
-                              cores.ratio)
-
-        cat("Performed", type,
-            "bootstrap with", nboot,
-            "resampling")
-
-        if (parameters$do.boot == TRUE) {
-            cat(" and", 
-                parameters$pvalue,
-                "as pvalue for the statistical tests")
-        } 
-        cat(".\n")
+                              cores.ratio,
+                              silent = silent)
+        if (!silent) {
+            cat("Performed", type,
+                "bootstrap with", nboot,
+                "resampling")
+            if (parameters$do.boot == TRUE) {
+                cat(" and", 
+                    parameters$pvalue,
+                    "as pvalue for the statistical tests")
+            } 
+            cat(".\n")
+        }
     }
     reconstruction$bootstrap = curr.boot
     return(reconstruction)

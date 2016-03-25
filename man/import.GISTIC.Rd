@@ -4,7 +4,8 @@
 \alias{import.GISTIC}
 \title{import.GISTIC}
 \usage{
-import.GISTIC(x, filter.genes = NULL, filter.samples = NULL)
+import.GISTIC(x, filter.genes = NULL, filter.samples = NULL,
+  silent = FALSE)
 }
 \arguments{
 \item{x}{Either a dataframe or a filename}
@@ -12,6 +13,8 @@ import.GISTIC(x, filter.genes = NULL, filter.samples = NULL)
 \item{filter.genes}{A list of genes}
 
 \item{filter.samples}{A list of samples}
+
+\item{silent}{A parameter to disable/enable verbose messages.}
 }
 \value{
 A TRONCO compliant representation of the input CNAs.
@@ -26,10 +29,7 @@ one row for each gene, a column Hugo_Symbol with every gene name and a column En
  Loss" (-1), "Low-level Gain" (+1), "High-level Gain" (+2).
 }
 \examples{
-data(gistic)
-gistic = import.GISTIC(gistic)
-gistic = annotate.description(gistic, 'Example GISTIC')
-oncoprint(gistic)
+gistic = import.GISTIC(crc_gistic)
 
 }
 
