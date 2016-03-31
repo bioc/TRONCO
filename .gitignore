@@ -1,3 +1,4 @@
+/vignettes/vignette.R
 /cfg.R
 # History files
 .Rhistory
@@ -26,3 +27,9 @@
 
 # Configuration file
 cfg.R
+
+*.log
+
+*.out
+
+*.toc
