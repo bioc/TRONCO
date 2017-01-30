@@ -36,7 +36,8 @@ capri.fit <- function(dataset,
                       boot.seed = NULL,
                       silent = FALSE,
                       epos = 0.0,
-                      eneg = 0.0 ) {
+                      eneg = 0.0,
+                      restart = 100) {
 
     ## Start the clock to measure the execution time.
     
@@ -140,7 +141,8 @@ capri.fit <- function(dataset,
             perform.likelihood.fit.capri(dataset,
                 prima.facie.parents$adj.matrix$adj.matrix.acyclic,
                 command,
-                regularization = reg)
+                regularization = reg,
+                restart)
 
         ## Set the structure to save the conditional probabilities of
         ## the reconstructed topology.
@@ -166,7 +168,8 @@ capri.fit <- function(dataset,
              min.stat = min.stat,
              boot.seed = boot.seed,
              silent = silent,
-             error.rates = list(epos=epos,eneg=eneg))
+             error.rates = list(epos=epos,eneg=eneg),
+             restart = restart)
 
     ## Return the results.
     
@@ -403,6 +406,11 @@ get.bootstrapped.scores <- function(dataset,
 
     ## Perform bootstrap estimation based on a number of bootstrapped
     ## (>= nboot) datasets.
+
+    ###
+    ### START BOOTSTRAP HERE
+    ###
+
     
     curr.iteration = min(sampled.prima.facie.distributions);
     boot.counter = 0;
@@ -1115,7 +1123,8 @@ get.prima.facie.parents.no.boot <- function(dataset,
 perform.likelihood.fit.capri <- function(dataset,
                                          adj.matrix,
                                          command,
-                                         regularization) {
+                                         regularization,
+                                         restart) {
 
     ## Adjacency matrix of the topology reconstructed by likelihood
     ## fit.
@@ -1131,7 +1140,8 @@ perform.likelihood.fit.capri <- function(dataset,
         adj.matrix,
         adj.matrix.fit,
         regularization,
-        command)
+        command,
+        restart)
 
     ## Save the results and return them.
     
